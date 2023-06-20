@@ -1,0 +1,50 @@
+#!/bin/bash
+#SBATCH -J SAIGE_AD
+#SBATCH -p gpu
+#SBATCH -N 1
+#SBATCH -n 15
+#SBATCH --ntasks-per-node=15
+#SBATCH -o job_AD.%j.out
+#SBATCH -e job_AD.%j.err
+module load miniconda3
+conda activate RSAIGE
+
+for i in {1..22};
+do
+Rscript /home1/Royce/wbs_data/software/SAIGE/extdata/step1_fitNULLGLMM.R \
+    --sparseGRMFile=/share/home1/Vinceyang/yl_data/WES/GRM/UKB_GRM_relatednessCutoff_0.05_5000_randomMarkersUsed_unrelated_2nd_relatednessCutoff_0.05_5000_randomMarkersUsed.sparseGRM.mtx \
+    --sparseGRMSampleIDFile=/share/home1/Vinceyang/yl_data/WES/GRM/UKB_GRM_relatednessCutoff_0.05_5000_randomMarkersUsed_unrelated_2nd_relatednessCutoff_0.05_5000_randomMarkersUsed.sparseGRM.mtx.sampleIDs.txt \
+    --plinkFile=/share/home1/Vinceyang/yl_data/WES/unrelated_0_084/ukb_wes_chr${i}_sample_qc_final_unrelated \
+    --useSparseGRMtoFitNULL=TRUE \
+    --phenoFile=/public/home/Royce/wbs_data/wbs_wes_proxy_AD/adjust_common_prs/data/anno_new_proxyADD_2nd_add_prs.txt \
+    --phenoCol=proxy_ADD \
+    --covarColList=age,sex,PC1,PC2,PC3,PC4,PC5,PC6,PC7,PC8,PC9,PC10,Pt_5e_08 \
+    --qCovarColList=sex  \
+    --sampleIDColinphenoFile=eid \
+    --traitType=binary \
+    --isCateVarianceRatio=TRUE \
+    --nThreads=30 \
+    --isCovariateOffset=TRUE \
+    --LOCO=TRUE \
+    --outputPrefix=/home1/Royce/wbs_data/wbs_wes_proxy_AD/adjust_common_prs/result/STEP1/sparseGRM_relatednessCutoff_0.05_5000_randomMarkersUsed_chr${i}_proxy_ADD_years_10pca_2nd \
+    --IsOverwriteVarianceRatioFile=TRUE
+
+Rscript /home1/Royce/wbs_data/software/SAIGE/extdata/step2_SPAtests.R \
+     --bedFile=/share/home1/Vinceyang/yl_data/WES/unrelated_0_084/ukb_wes_chr${i}_sample_qc_final_unrelated.bed \
+     --bimFile=/share/home1/Vinceyang/yl_data/WES/unrelated_0_084/ukb_wes_chr${i}_sample_qc_final_unrelated.bim \
+     --famFile=/share/home1/Vinceyang/yl_data/WES/unrelated_0_084/ukb_wes_chr${i}_sample_qc_final_unrelated.fam \
+     --SAIGEOutputFile=/home1/Royce/wbs_data/wbs_wes_proxy_AD/adjust_common_prs/result/STEP2/sparseGRM_relatednessCutoff_0.05_5000_randomMarkersUsed_chr${i}_proxy_ADD_10pca_2nd_new_group_v2.txt \
+     --AlleleOrder=alt-first \
+     --minMAF=0 \
+     --minMAC=0.5 \
+     --GMMATmodelFile=/home1/Royce/wbs_data/wbs_wes_proxy_AD/adjust_common_prs/result/STEP1/sparseGRM_relatednessCutoff_0.05_5000_randomMarkersUsed_chr${i}_proxy_ADD_years_10pca_2nd.rda \
+     --varianceRatioFile=/home1/Royce/wbs_data/wbs_wes_proxy_AD/adjust_common_prs/result/STEP1/sparseGRM_relatednessCutoff_0.05_5000_randomMarkersUsed_chr${i}_proxy_ADD_years_10pca_2nd.varianceRatio.txt \
+    --sparseGRMFile=/share/home1/Vinceyang/yl_data/WES/GRM/UKB_GRM_relatednessCutoff_0.05_5000_randomMarkersUsed_unrelated_2nd_relatednessCutoff_0.05_5000_randomMarkersUsed.sparseGRM.mtx \
+    --sparseGRMSampleIDFile=/share/home1/Vinceyang/yl_data/WES/GRM/UKB_GRM_relatednessCutoff_0.05_5000_randomMarkersUsed_unrelated_2nd_relatednessCutoff_0.05_5000_randomMarkersUsed.sparseGRM.mtx.sampleIDs.txt \
+    --groupFile=/home1/Royce/wbs_data/wbs_wes/data/groupfile_snpeff/SNPEff_chr${i}.txt \
+     --annotation_in_groupTest="lof,missense,missense:lof" \
+     --maxMAF_in_groupTest=0.000005,0.00001,0.0001,0.001,0.01 \
+     --is_output_markerList_in_groupTest=TRUE \
+     --LOCO=F \
+     --is_fastTest=TRUE
+done
